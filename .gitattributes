@@ -1,0 +1,9 @@
+# O repositório guarda tudo em LF. A CI roda em Ubuntu e o Windows converte na
+# hora do checkout, então ninguém vê diferença — mas o diff para de encher de
+# linhas alteradas só por causa do fim de linha.
+* text=auto eol=lf
+
+# Binários: nunca converter.
+*.png binary
+*.mp3 binary
+*.woff2 binary

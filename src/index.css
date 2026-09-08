@@ -1,0 +1,1069 @@
+/* Só o subset latino: cobre todos os acentos do português e evita carregar
+   cirílico e latin-ext, que não usamos. */
+@import '@fontsource/eb-garamond/latin-400.css';
+@import '@fontsource/eb-garamond/latin-400-italic.css';
+@import '@fontsource/eb-garamond/latin-500.css';
+@import '@fontsource/eb-garamond/latin-600.css';
+@import '@fontsource/archivo/latin-400.css';
+@import '@fontsource/archivo/latin-500.css';
+
+/*
+  Projeto Salmos — o saltério iluminado.
+  Ultramarino (lápis-lazúli) e ouro em folha: os dois pigmentos dos saltérios
+  medievais. O ouro marca só o que foi conquistado ou o que é urgente.
+*/
+:root {
+  --ink-deep: #101a45;
+  --ink: #17235c;
+  --ink-raised: #1f2d72;
+  --ink-line: #2c3b85;
+  --vellum: #f0e8d5;
+  --vellum-line: #d8cdb0;
+  --gilt: #c39b4a;
+  --gilt-bright: #e6cb84;
+  --script: #221c10;
+  --script-soft: #5b5140;
+  --pale: #cfd4ec;
+  --pale-dim: #8f9ac4;
+  --alarm: #d98b6a;
+
+  --serif: 'EB Garamond', Georgia, 'Times New Roman', serif;
+  --sans: 'Archivo', system-ui, -apple-system, sans-serif;
+
+  --page: 34rem;
+  --measure: 42rem;
+  --radius: 3px;
+
+  color-scheme: dark;
+  font-family: var(--sans);
+  color: var(--pale);
+  background: var(--ink-deep);
+  -webkit-text-size-adjust: 100%;
+  -webkit-tap-highlight-color: transparent;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+html,
+body,
+#root {
+  min-height: 100%;
+}
+
+body {
+  margin: 0;
+  background: var(--ink-deep);
+  /* Vinco central de um códice aberto: quase imperceptível, dá matéria ao fundo. */
+  background-image: radial-gradient(
+    120% 60% at 50% -10%,
+    rgba(31, 45, 114, 0.55),
+    transparent 70%
+  );
+  background-attachment: fixed;
+}
+
+h1,
+h2,
+h3 {
+  font-family: var(--serif);
+  font-weight: 500;
+  line-height: 1.15;
+  margin: 0;
+}
+
+button {
+  font: inherit;
+  cursor: pointer;
+  border: none;
+  background: none;
+  color: inherit;
+}
+
+a {
+  color: var(--gilt-bright);
+  text-decoration-thickness: 1px;
+  text-underline-offset: 3px;
+}
+
+input,
+select {
+  font: inherit;
+}
+
+:focus-visible {
+  outline: 2px solid var(--gilt-bright);
+  outline-offset: 2px;
+}
+
+/* ── Estrutura ───────────────────────────────────────────────── */
+
+.shell {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: flex;
+  flex-direction: column;
+}
+
+.topbar {
+  border-bottom: 1px solid var(--ink-line);
+}
+
+/* A barra atravessa a tela, o conteúdo dela respeita a mesma medida do texto. */
+.topbar__inner {
+  display: flex;
+  align-items: center;
+  gap: 1rem;
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: 0.85rem clamp(1rem, 4vw, 2rem);
+}
+
+.topbar__mark {
+  font-family: var(--serif);
+  font-size: 1.3rem;
+  letter-spacing: 0.01em;
+  color: var(--vellum);
+}
+
+.topbar__mark b {
+  font-weight: 500;
+  color: var(--gilt);
+}
+
+.topbar__day {
+  margin-left: auto;
+  font-size: 0.8125rem;
+  color: var(--pale-dim);
+}
+
+.topbar__avatar {
+  width: 30px;
+  height: 30px;
+  border-radius: 50%;
+  border: 1px solid var(--gilt);
+  object-fit: cover;
+  display: block;
+}
+
+/*
+  Uma medida só para todo o aplicativo: o pergaminho, os avisos, os botões e o
+  índice compartilham a mesma borda esquerda e direita. O painel do
+  administrador é a exceção — tabela precisa de largura.
+*/
+.main {
+  flex: 1;
+  width: 100%;
+  max-width: var(--measure);
+  margin: 0 auto;
+  padding: clamp(1.25rem, 4vw, 2.5rem) clamp(1rem, 4vw, 2rem) 5.5rem;
+}
+
+.main--wide {
+  max-width: 64rem;
+}
+
+.nav {
+  position: sticky;
+  bottom: 0;
+  background: rgba(16, 26, 69, 0.94);
+  backdrop-filter: blur(8px);
+  border-top: 1px solid var(--ink-line);
+}
+
+.nav__inner {
+  display: flex;
+  max-width: var(--measure);
+  margin: 0 auto;
+}
+
+.nav__link {
+  flex: 1;
+  padding: 0.7rem 0.25rem 0.85rem;
+  text-align: center;
+  font-size: 0.75rem;
+  color: var(--pale-dim);
+  text-decoration: none;
+  border-top: 2px solid transparent;
+  margin-top: -1px;
+}
+
+.nav__link[aria-current='page'] {
+  color: var(--gilt-bright);
+  border-top-color: var(--gilt);
+}
+
+.nav__glyph {
+  display: grid;
+  place-items: center;
+  line-height: 0;
+  margin-bottom: 0.25rem;
+}
+
+/* ── A página do salmo ───────────────────────────────────────── */
+
+.leaf {
+  background: var(--vellum);
+  color: var(--script);
+  border-radius: var(--radius);
+  padding: clamp(1.5rem, 5vw, 2.75rem) clamp(1.25rem, 5vw, 2.5rem);
+  /* A borda superior é a dourada do corte de um livro encadernado. */
+  border-top: 2px solid var(--gilt);
+  box-shadow: 0 18px 40px -22px rgba(0, 0, 0, 0.75);
+}
+
+.leaf__head {
+  display: flex;
+  align-items: baseline;
+  gap: 0.75rem;
+  padding-bottom: 0.9rem;
+  border-bottom: 1px solid var(--vellum-line);
+  margin-bottom: 1.6rem;
+}
+
+.leaf__title {
+  font-size: clamp(1.85rem, 6vw, 2.35rem);
+  color: var(--script);
+}
+
+.leaf__meta {
+  margin-left: auto;
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  color: var(--script-soft);
+}
+
+.star {
+  display: grid;
+  place-items: center;
+  line-height: 0;
+  color: var(--script-soft);
+  padding: 0.3rem;
+  transition: color 0.15s ease;
+}
+
+.star[aria-pressed='true'] {
+  color: var(--gilt);
+}
+
+.verses {
+  font-family: var(--serif);
+  font-size: 1.1875rem;
+  line-height: 1.66;
+  margin: 0;
+  padding: 0;
+  list-style: none;
+}
+
+.verse {
+  display: grid;
+  grid-template-columns: 1.75rem 1fr;
+  gap: 0 0.5rem;
+  margin-bottom: 0.55rem;
+}
+
+.verse__n {
+  font-family: var(--sans);
+  font-size: 0.6875rem;
+  font-weight: 500;
+  color: var(--gilt);
+  text-align: right;
+  padding-top: 0.5rem;
+  user-select: none;
+}
+
+/* A versal iluminada: só no primeiro versículo, uma vez por salmo. */
+.verse--first .verse__n {
+  visibility: hidden;
+}
+
+.verse--first .verse__text::first-letter {
+  font-size: 3.4rem;
+  font-weight: 600;
+  line-height: 0.82;
+  float: left;
+  margin: 0.13em 0.09em 0 0;
+  color: var(--gilt);
+}
+
+/* ── Áudio ───────────────────────────────────────────────────── */
+
+.audio {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin-top: 1.9rem;
+  padding-top: 1.1rem;
+  border-top: 1px solid var(--vellum-line);
+  font-family: var(--sans);
+  font-size: 0.8125rem;
+  color: var(--script-soft);
+}
+
+.audio__play {
+  width: 40px;
+  height: 40px;
+  flex: none;
+  border-radius: 50%;
+  background: var(--ink);
+  color: var(--vellum);
+  display: grid;
+  place-items: center;
+  font-size: 0.9rem;
+}
+
+.audio__play:disabled {
+  opacity: 0.45;
+  cursor: default;
+}
+
+.audio__track {
+  flex: 1;
+  height: 3px;
+  background: var(--vellum-line);
+  position: relative;
+  cursor: pointer;
+}
+
+.audio__fill {
+  position: absolute;
+  inset: 0 auto 0 0;
+  background: var(--gilt);
+}
+
+.audio__time {
+  font-variant-numeric: tabular-nums;
+  flex: none;
+}
+
+/* ── Ações e avisos ──────────────────────────────────────────── */
+
+.after-leaf {
+  margin-top: 1.75rem;
+  display: flex;
+  flex-direction: column;
+  gap: 0.9rem;
+  align-items: flex-start;
+}
+
+.btn {
+  font-family: var(--sans);
+  font-size: 0.9375rem;
+  font-weight: 500;
+  padding: 0.8rem 1.5rem;
+  border-radius: var(--radius);
+  background: var(--gilt);
+  color: #1a1408;
+  transition: background 0.15s ease;
+}
+
+.btn:hover:not(:disabled) {
+  background: var(--gilt-bright);
+}
+
+.btn:disabled {
+  opacity: 0.5;
+  cursor: default;
+}
+
+.btn--ghost {
+  background: none;
+  color: var(--pale);
+  border: 1px solid var(--ink-line);
+}
+
+.btn--ghost:hover:not(:disabled) {
+  background: var(--ink-raised);
+  border-color: var(--gilt);
+}
+
+.btn--wide {
+  width: 100%;
+  text-align: center;
+}
+
+/* O único botão com ícone: a marca do Google não pode ser recolorida. */
+.btn--google {
+  display: flex;
+  align-items: center;
+  justify-content: center;
+  gap: 0.6rem;
+}
+
+/* ── Telas de limiar ─────────────────────────────────────────── */
+
+.threshold h1 {
+  font-size: clamp(1.65rem, 5.5vw, 2.1rem);
+  color: var(--vellum);
+  max-width: 24rem;
+}
+
+.threshold > p {
+  margin: 0.6rem 0 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--pale-dim);
+  max-width: 30rem;
+}
+
+/*
+  A epígrafe: o salmo para onde a pessoa vai. Nas telas de limiar ela é o
+  centro de gravidade da página — o pergaminho fica reservado para a leitura
+  do dia, então aqui o texto vem em itálico sobre o ultramarino.
+*/
+.epigraph {
+  margin: 2.25rem 0;
+  padding-left: 1.15rem;
+  border-left: 1px solid var(--gilt);
+  max-width: var(--page);
+}
+
+.epigraph__line {
+  font-family: var(--serif);
+  font-size: clamp(1.15rem, 4.5vw, 1.4rem);
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--vellum);
+  margin: 0;
+  /* As aspas de abertura ficam na margem, como num códice. */
+  text-indent: -0.4em;
+}
+
+.epigraph__cite {
+  display: block;
+  margin-top: 0.7rem;
+  font-family: var(--sans);
+  font-size: 0.75rem;
+  font-style: normal;
+  color: var(--pale-dim);
+}
+
+.stakes {
+  font-size: 0.875rem;
+  line-height: 1.5;
+  color: var(--pale-dim);
+  max-width: 30rem;
+}
+
+.stakes b {
+  font-weight: 500;
+  color: var(--gilt-bright);
+  font-variant-numeric: tabular-nums;
+}
+
+.stakes--urgent b {
+  color: var(--alarm);
+}
+
+.banner {
+  display: flex;
+  gap: 0.6rem;
+  align-items: flex-start;
+  padding: 0.7rem 0.95rem;
+  margin-bottom: 1.4rem;
+  border-left: 2px solid var(--gilt);
+  background: var(--ink);
+  border-radius: 0 var(--radius) var(--radius) 0;
+  font-size: 0.8125rem;
+  line-height: 1.5;
+  color: var(--pale);
+}
+
+.banner svg {
+  flex: none;
+  color: var(--gilt);
+  margin-top: 0.1rem;
+}
+
+.banner--offline {
+  border-left-color: var(--alarm);
+}
+
+/* ── Saltério: os 150 ────────────────────────────────────────── */
+
+.section-head {
+  margin-bottom: 1.35rem;
+}
+
+.section-head h1 {
+  font-size: clamp(1.6rem, 5vw, 2rem);
+  color: var(--vellum);
+}
+
+.section-head p {
+  margin: 0.4rem 0 0;
+  font-size: 0.875rem;
+  line-height: 1.55;
+  color: var(--pale-dim);
+  max-width: 32rem;
+}
+
+.psalter {
+  display: grid;
+  grid-template-columns: repeat(auto-fill, minmax(46px, 1fr));
+  gap: 5px;
+  list-style: none;
+  margin: 0;
+  padding: 0;
+}
+
+.cell {
+  aspect-ratio: 1;
+  width: 100%;
+  display: grid;
+  place-items: center;
+  font-family: var(--serif);
+  font-size: 0.9375rem;
+  border: 1px solid var(--ink-line);
+  border-radius: 2px;
+  color: var(--pale-dim);
+  background: var(--ink);
+  text-decoration: none;
+  position: relative;
+}
+
+.cell--read {
+  background: var(--gilt);
+  border-color: var(--gilt);
+  color: #1a1408;
+  font-weight: 600;
+}
+
+.cell--today {
+  border-color: var(--gilt-bright);
+  border-width: 2px;
+  color: var(--gilt-bright);
+  font-weight: 600;
+}
+
+.cell--locked {
+  opacity: 0.34;
+  cursor: not-allowed;
+}
+
+/* Favorito: um ponto no canto, como a marca de um copista. */
+.cell--fav::after {
+  content: '';
+  position: absolute;
+  top: 3px;
+  right: 3px;
+  width: 4px;
+  height: 4px;
+  border-radius: 50%;
+  background: var(--gilt-bright);
+}
+
+.cell--read.cell--fav::after {
+  background: var(--ink);
+}
+
+@keyframes gild {
+  from {
+    background: var(--ink);
+    border-color: var(--ink-line);
+    color: var(--pale-dim);
+  }
+}
+
+.cell--just-read {
+  animation: gild 0.6s ease-out;
+}
+
+.legend {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 1rem;
+  margin-top: 1.1rem;
+  font-size: 0.75rem;
+  color: var(--pale-dim);
+}
+
+.legend span {
+  display: flex;
+  align-items: center;
+  gap: 0.4rem;
+}
+
+.legend i {
+  width: 11px;
+  height: 11px;
+  border-radius: 2px;
+  border: 1px solid var(--ink-line);
+  background: var(--ink);
+}
+
+.legend i.is-read {
+  background: var(--gilt);
+  border-color: var(--gilt);
+}
+
+.legend i.is-today {
+  background: none;
+  border: 2px solid var(--gilt-bright);
+}
+
+/* ── Listas (favoritos, histórico) ───────────────────────────── */
+
+.rows {
+  list-style: none;
+  margin: 0;
+  padding: 0;
+  border-top: 1px solid var(--ink-line);
+}
+
+.row {
+  display: flex;
+  align-items: baseline;
+  gap: 0.9rem;
+  padding: 0.85rem 0.25rem;
+  border-bottom: 1px solid var(--ink-line);
+  text-decoration: none;
+  color: inherit;
+}
+
+.row:hover {
+  background: var(--ink);
+}
+
+.row__n {
+  font-family: var(--serif);
+  font-size: 1.25rem;
+  color: var(--gilt);
+  flex: none;
+  min-width: 2.5rem;
+  text-align: right;
+  font-variant-numeric: tabular-nums;
+}
+
+.row__body {
+  flex: 1;
+  min-width: 0;
+  /* É um <span> dentro de um flex item: sem isto o conteúdo não quebra em
+     bloco. */
+  display: block;
+}
+
+.row__incipit {
+  display: block;
+  font-family: var(--serif);
+  font-size: 1.0625rem;
+  line-height: 1.45;
+  color: var(--vellum);
+}
+
+.row__closed {
+  display: block;
+  font-size: 0.875rem;
+  color: var(--pale-dim);
+}
+
+.row--closed {
+  cursor: default;
+}
+
+.row--closed:hover {
+  background: none;
+}
+
+.row--closed .row__n {
+  color: var(--pale-dim);
+}
+
+.empty {
+  padding: 2.5rem 0;
+  font-size: 0.9375rem;
+  line-height: 1.6;
+  color: var(--pale-dim);
+  max-width: 26rem;
+}
+
+/* ── Formulários ─────────────────────────────────────────────── */
+
+.field {
+  display: block;
+  margin-bottom: 1rem;
+}
+
+.field > span {
+  display: block;
+  font-size: 0.8125rem;
+  color: var(--pale-dim);
+  margin-bottom: 0.35rem;
+}
+
+.field input,
+.field select {
+  width: 100%;
+  padding: 0.7rem 0.85rem;
+  border-radius: var(--radius);
+  border: 1px solid var(--ink-line);
+  background: var(--ink);
+  color: var(--vellum);
+}
+
+.field input:focus {
+  border-color: var(--gilt);
+}
+
+.field--inline {
+  margin-bottom: 0;
+}
+
+.field--grow {
+  flex: 1;
+  min-width: 16rem;
+}
+
+/* Campos e botão numa linha, alinhados pela base. */
+.form-row {
+  display: flex;
+  flex-wrap: wrap;
+  align-items: flex-end;
+  gap: 0.6rem;
+}
+
+/* Manhã, tarde e noite lado a lado, três colunas iguais até no celular. */
+.times {
+  display: flex;
+  gap: 0.6rem;
+}
+
+.times .field {
+  flex: 1 1 0;
+  max-width: 9rem;
+}
+
+.times input {
+  width: 100%;
+  min-width: 0;
+  padding-inline: 0.6rem;
+  font-variant-numeric: tabular-nums;
+}
+
+.error {
+  font-size: 0.875rem;
+  color: var(--alarm);
+  margin: 0 0 1rem;
+}
+
+.note {
+  font-size: 0.8125rem;
+  line-height: 1.55;
+  color: var(--pale-dim);
+  margin: 0.5rem 0 0;
+}
+
+.switch {
+  display: flex;
+  align-items: center;
+  gap: 0.75rem;
+  padding: 1rem 0;
+  border-bottom: 1px solid var(--ink-line);
+}
+
+/* Blocos dos Ajustes: um subtítulo e o que vem embaixo dele. */
+.block {
+  margin-top: 2.25rem;
+}
+
+.block > h2 {
+  font-size: 1.15rem;
+  color: var(--vellum);
+  margin-bottom: 0.4rem;
+}
+
+.block > .note:first-of-type {
+  margin-top: 0;
+  margin-bottom: 0.9rem;
+}
+
+.block__actions {
+  display: flex;
+  align-items: center;
+  gap: 0.9rem;
+  margin-top: 1.1rem;
+}
+
+.switch__label {
+  flex: 1;
+}
+
+.switch__label b {
+  display: block;
+  font-weight: 500;
+  color: var(--vellum);
+  font-size: 0.9375rem;
+}
+
+.switch__label span {
+  font-size: 0.8125rem;
+  color: var(--pale-dim);
+}
+
+/* ── Entrada ─────────────────────────────────────────────────── */
+
+.gate {
+  min-height: 100vh;
+  min-height: 100dvh;
+  display: grid;
+  place-items: center;
+  padding: 2rem 1.25rem;
+}
+
+.gate__card {
+  width: 100%;
+  max-width: 25rem;
+}
+
+.gate__mark {
+  font-family: var(--serif);
+  font-size: clamp(2.5rem, 11vw, 3.4rem);
+  line-height: 1.05;
+  color: var(--vellum);
+  margin-bottom: 0.5rem;
+}
+
+.gate__mark b {
+  font-weight: 500;
+  color: var(--gilt);
+}
+
+.gate__line {
+  font-family: var(--serif);
+  font-size: 1.1875rem;
+  font-style: italic;
+  line-height: 1.5;
+  color: var(--pale);
+  margin: 0 0 0.4rem;
+}
+
+.gate__cite {
+  font-size: 0.75rem;
+  color: var(--pale-dim);
+  margin: 0 0 2.25rem;
+}
+
+.gate__sep {
+  display: flex;
+  align-items: center;
+  gap: 0.85rem;
+  margin: 1.5rem 0;
+  font-size: 0.75rem;
+  color: var(--pale-dim);
+}
+
+.gate__sep::before,
+.gate__sep::after {
+  content: '';
+  flex: 1;
+  height: 1px;
+  background: var(--ink-line);
+}
+
+.gate__switch {
+  margin-top: 1.5rem;
+  font-size: 0.875rem;
+  color: var(--pale-dim);
+}
+
+.gate__switch button {
+  color: var(--gilt-bright);
+  text-decoration: underline;
+  text-underline-offset: 3px;
+}
+
+/* ── Painel do administrador ─────────────────────────────────── */
+
+.stats {
+  display: grid;
+  grid-template-columns: repeat(auto-fit, minmax(9rem, 1fr));
+  gap: 1px;
+  background: var(--ink-line);
+  border: 1px solid var(--ink-line);
+  border-radius: var(--radius);
+  margin-bottom: 1.75rem;
+  overflow: hidden;
+}
+
+.stat {
+  background: var(--ink);
+  padding: 0.95rem 1rem;
+}
+
+.stat b {
+  display: block;
+  font-family: var(--serif);
+  font-size: 1.75rem;
+  font-weight: 500;
+  color: var(--gilt);
+  line-height: 1.1;
+}
+
+.stat span {
+  font-size: 0.75rem;
+  color: var(--pale-dim);
+}
+
+.table-scroll {
+  overflow-x: auto;
+  border: 1px solid var(--ink-line);
+  border-radius: var(--radius);
+}
+
+table {
+  width: 100%;
+  border-collapse: collapse;
+  font-size: 0.875rem;
+  min-width: 40rem;
+}
+
+th {
+  text-align: left;
+  font-weight: 500;
+  font-size: 0.75rem;
+  color: var(--pale-dim);
+  padding: 0.7rem 0.9rem;
+  background: var(--ink);
+  border-bottom: 1px solid var(--ink-line);
+  white-space: nowrap;
+  cursor: pointer;
+  user-select: none;
+}
+
+th[aria-sort] {
+  color: var(--gilt-bright);
+}
+
+td {
+  padding: 0.7rem 0.9rem;
+  border-bottom: 1px solid rgba(44, 59, 133, 0.5);
+  color: var(--pale);
+  white-space: nowrap;
+}
+
+tbody tr:hover td {
+  background: rgba(31, 45, 114, 0.35);
+}
+
+.who {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+}
+
+.who img,
+.who i {
+  width: 26px;
+  height: 26px;
+  border-radius: 50%;
+  flex: none;
+  object-fit: cover;
+}
+
+.who i {
+  display: grid;
+  place-items: center;
+  background: var(--ink-raised);
+  font-style: normal;
+  font-size: 0.75rem;
+  color: var(--gilt);
+}
+
+.who b {
+  font-weight: 500;
+  color: var(--vellum);
+}
+
+.who span {
+  display: block;
+  font-size: 0.75rem;
+  color: var(--pale-dim);
+}
+
+.bar {
+  display: flex;
+  align-items: center;
+  gap: 0.6rem;
+  min-width: 8rem;
+}
+
+.bar__track {
+  flex: 1;
+  height: 4px;
+  background: var(--ink-raised);
+  border-radius: 2px;
+  overflow: hidden;
+}
+
+.bar__fill {
+  /* É um <span>: sem display:block a altura é ignorada e a barra desaparece. */
+  display: block;
+  height: 100%;
+  background: var(--gilt);
+}
+
+.bar__num {
+  font-variant-numeric: tabular-nums;
+  font-size: 0.8125rem;
+  color: var(--pale-dim);
+}
+
+.tag {
+  font-size: 0.6875rem;
+  padding: 0.15rem 0.5rem;
+  border-radius: 999px;
+  border: 1px solid var(--ink-line);
+  color: var(--pale-dim);
+}
+
+.tag--live {
+  border-color: var(--gilt);
+  color: var(--gilt-bright);
+}
+
+/* ── Utilidades ──────────────────────────────────────────────── */
+
+.spinner {
+  display: grid;
+  place-items: center;
+  min-height: 60vh;
+  font-family: var(--serif);
+  font-size: 1.15rem;
+  color: var(--pale-dim);
+}
+
+.toast {
+  position: fixed;
+  left: 50%;
+  bottom: 4.75rem;
+  transform: translateX(-50%);
+  z-index: 20;
+  max-width: min(26rem, calc(100vw - 2rem));
+  padding: 0.75rem 1.1rem;
+  border-radius: var(--radius);
+  background: var(--vellum);
+  color: var(--script);
+  font-size: 0.875rem;
+  line-height: 1.45;
+  box-shadow: 0 14px 34px -14px rgba(0, 0, 0, 0.8);
+}
+
+.visually-hidden {
+  position: absolute;
+  width: 1px;
+  height: 1px;
+  overflow: hidden;
+  clip: rect(0 0 0 0);
+  white-space: nowrap;
+}
+
+@media (prefers-reduced-motion: reduce) {
+  *,
+  *::before,
+  *::after {
+    animation-duration: 0.01ms !important;
+    animation-iteration-count: 1 !important;
+    transition-duration: 0.01ms !important;
+  }
+}

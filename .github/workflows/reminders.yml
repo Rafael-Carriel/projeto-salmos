@@ -1,0 +1,42 @@
+name: Lembretes do salmo do dia
+
+# O Firebase só agenda tarefas no plano Blaze (Cloud Functions). O envio pelo
+# FCM é gratuito no Spark, então o relógio fica aqui.
+#
+# O agendador do GitHub costuma atrasar alguns minutos em horários redondos,
+# por isso rodamos em :07 e :37 — e o script só dispara horários que já
+# passaram, nunca antes da hora escolhida pela pessoa.
+on:
+  schedule:
+    - cron: '7,37 * * * *'
+  workflow_dispatch:
+    inputs:
+      dry_run:
+        description: 'Só listar quem receberia, sem enviar'
+        type: boolean
+        default: true
+
+concurrency:
+  group: reminders
+  cancel-in-progress: false
+
+jobs:
+  send:
+    runs-on: ubuntu-latest
+    timeout-minutes: 10
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 22
+          cache: npm
+
+      - run: npm ci
+
+      - name: Enviar lembretes
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+          APP_URL: ${{ vars.APP_URL }}
+          DRY_RUN: ${{ inputs.dry_run && '1' || '0' }}
+        run: node scripts/send-reminders.mjs

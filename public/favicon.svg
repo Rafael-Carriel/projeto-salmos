@@ -1,0 +1,16 @@
+<svg xmlns="http://www.w3.org/2000/svg" width="512" height="512" viewBox="0 0 512 512">
+  <rect width="512" height="512" fill="#101a45"/>
+  <g transform="translate(28 28) scale(0.890625)"
+     fill="none" stroke="#c39b4a" stroke-linecap="round" stroke-linejoin="round">
+    <g stroke-width="7" opacity="0.88">
+      <path d="M200 155 L200 385"/>
+      <path d="M226 150 L226 385"/>
+      <path d="M252 149 L252 385"/>
+      <path d="M278 154 L278 385"/>
+      <path d="M304 166 L304 378"/>
+      <path d="M330 190 L330 276"/>
+    </g>
+    <!-- coluna, braço curvo, caixa e pé: um traço contínuo -->
+    <path d="M168 400 L176 150 C 250 116 330 146 350 214 L302 400 Z" stroke-width="22"/>
+  </g>
+</svg>

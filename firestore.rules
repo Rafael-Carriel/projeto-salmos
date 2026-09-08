@@ -1,0 +1,76 @@
+rules_version = '2';
+
+service cloud.firestore {
+  match /databases/{database}/documents {
+
+    function signedIn() {
+      return request.auth != null;
+    }
+
+    // Administrador vive em roles/{uid}, coleção que nenhum cliente escreve.
+    // Se o cargo ficasse no documento do próprio usuário, ele se promoveria.
+    function isAdmin() {
+      return signedIn()
+        && exists(/databases/$(database)/documents/roles/$(request.auth.uid))
+        && get(/databases/$(database)/documents/roles/$(request.auth.uid)).data.admin == true;
+    }
+
+    function isOwner(uid) {
+      return signedIn() && request.auth.uid == uid;
+    }
+
+    match /users/{uid} {
+      // O dono lê o seu; o administrador lê e lista todos, para o painel.
+      allow read: if isOwner(uid) || isAdmin();
+
+      allow create: if isOwner(uid)
+        && request.resource.data.uid == uid
+        && request.resource.data.lastReadDay == 0
+        && request.resource.data.cycleStartDate == null;
+
+      // O progresso avança no máximo um dia por escrita, e só zera num
+      // recomeço. Sem isso, alguém escreveria lastReadDay: 150 direto.
+      allow update: if isOwner(uid)
+        && request.resource.data.uid == resource.data.uid
+        && request.resource.data.createdAt == resource.data.createdAt
+        && request.resource.data.lastReadDay is int
+        && request.resource.data.lastReadDay >= 0
+        && request.resource.data.lastReadDay <= 150
+        && (
+          request.resource.data.lastReadDay == resource.data.lastReadDay
+          || request.resource.data.lastReadDay == resource.data.lastReadDay + 1
+          || request.resource.data.lastReadDay == 0
+        )
+        && request.resource.data.resets >= resource.data.resets
+        && request.resource.data.completedCycles >= resource.data.completedCycles
+        && request.resource.data.favorites.size() <= 150
+        && request.resource.data.notificationTimes.size() <= 3;
+
+      // Histórico é registro: escreve uma vez, nunca apaga nem reescreve.
+      match /readings/{date} {
+        allow read: if isOwner(uid) || isAdmin();
+        allow create: if isOwner(uid)
+          && request.resource.data.day is int
+          && request.resource.data.day >= 1
+          && request.resource.data.day <= 150;
+        allow update, delete: if false;
+      }
+    }
+
+    // URLs das narrações: todo mundo autenticado lê, só o administrador grava.
+    match /content/{document} {
+      allow read: if signedIn();
+      allow write: if isAdmin();
+    }
+
+    // Cada um confere o próprio cargo. Concedido só pelo Firebase Console.
+    match /roles/{uid} {
+      allow read: if isOwner(uid) || isAdmin();
+      allow write: if false;
+    }
+
+    match /{document=**} {
+      allow read, write: if false;
+    }
+  }
+}

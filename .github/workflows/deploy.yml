@@ -18,8 +18,10 @@ jobs:
 
       - run: npm ci
 
-      - name: Download audio files
-        run: node scripts/download-audio.mjs
+      - name: Sync audio from Drive URLs
+        env:
+          FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
+        run: node scripts/sync-audio.mjs
 
       - name: Build
         env:

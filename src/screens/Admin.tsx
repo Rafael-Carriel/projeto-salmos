@@ -260,8 +260,7 @@ function AudioAdmin() {
     <section className="block">
       <h2>Narrações</h2>
       <p className="note">
-        {filled} de {TOTAL_PSALMS} salmos com áudio. Cole o endereço do arquivo MP3 — pode estar no
-        próprio site (<code>/audio/salmo-1.mp3</code>) ou em qualquer host.
+        {filled} de {TOTAL_PSALMS} salmos com áudio.         Cole o link do áudio do Google Drive. No próximo deploy, o sistema baixa e hospeda automaticamente.
       </p>
 
       <div className="form-row">
@@ -282,7 +281,7 @@ function AudioAdmin() {
           <input
             value={url}
             onChange={(e) => setUrl(e.target.value)}
-            placeholder={urls[psalm] ?? '/audio/salmo-1.mp3'}
+            placeholder={urls[psalm] ?? 'https://drive.google.com/file/d/...'}
           />
         </label>
         <button

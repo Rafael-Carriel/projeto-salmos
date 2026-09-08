@@ -1,5 +1,6 @@
 import { Link } from 'react-router-dom'
 import type { ProfileState } from '../hooks/useProfile'
+import { useIsAdmin } from '../hooks/useIsAdmin'
 import { TOTAL_PSALMS } from '../lib/cycle'
 
 /**
@@ -9,6 +10,7 @@ import { TOTAL_PSALMS } from '../lib/cycle'
  */
 export function Psalter({ state }: { state: ProfileState }) {
   const { profile, cycle } = state
+  const isAdmin = useIsAdmin()
   if (!profile) return null
 
   const unlockedThrough = cycle.status === 'not-started' ? 0 : cycle.unlockedThrough
@@ -29,7 +31,7 @@ export function Psalter({ state }: { state: ProfileState }) {
 
       <ol className="psalter">
         {Array.from({ length: TOTAL_PSALMS }, (_, i) => i + 1).map((n) => {
-          const unlocked = n <= unlockedThrough
+          const unlocked = n <= unlockedThrough || isAdmin
           const read = n <= readThrough
           const isToday = cycle.status !== 'not-started' && n === cycle.unlockedThrough
           const classes = [

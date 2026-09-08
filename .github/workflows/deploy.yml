@@ -19,9 +19,10 @@ jobs:
       - run: npm ci
 
       - name: Sync audio from Drive URLs
+        if: ${{ vars.FIREBASE_PROJECT_ID != '' }}
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: node scripts/sync-audio.mjs
+        run: node scripts/sync-audio.mjs || echo "⚠️ Sync audio failed (non-fatal, skipping)"
 
       - name: Build
         env:

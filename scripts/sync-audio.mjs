@@ -22,9 +22,15 @@ const ROOT = join(__dirname, '..')
 const audioDir = join(ROOT, 'public', 'audio')
 const FORCE = process.argv.includes('--force')
 
-// Firebase Admin
-const saPath = join(process.env.HOME || process.env.USERPROFILE, 'AppData/Local/Temp/firebase-service-account.json')
-const sa = JSON.parse(readFileSync(saPath, 'utf-8'))
+// Firebase Admin — reads from FIREBASE_SERVICE_ACCOUNT env var (JSON string) or local file
+let sa
+const saEnv = process.env.FIREBASE_SERVICE_ACCOUNT
+if (saEnv) {
+  sa = JSON.parse(saEnv)
+} else {
+  const saPath = join(process.env.HOME || process.env.USERPROFILE, 'AppData/Local/Temp/firebase-service-account.json')
+  sa = JSON.parse(readFileSync(saPath, 'utf-8'))
+}
 
 // Dynamic import for ESM
 const { cert, initializeApp } = await import('firebase-admin/app')

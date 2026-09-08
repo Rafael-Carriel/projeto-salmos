@@ -71,32 +71,23 @@ async function main() {
 
   let downloaded = 0
   let skipped = 0
-  let converted = 0
   let failed = 0
-
-  const updates = {}
 
   for (const [num, url] of Object.entries(urls)) {
     if (!isDriveUrl(url)) {
-      // Already a local path, skip
       skipped++
       continue
     }
 
     const dest = join(audioDir, `salmo-${num}.ogg`)
-    const exists = existsSync(dest)
-
-    if (exists && !FORCE) {
-      // File already downloaded, just update the URL in Firestore
-      updates[`urls.${num}`] = `/audio/salmo-${num}.ogg`
-      converted++
+    if (existsSync(dest) && !FORCE) {
+      skipped++
       continue
     }
 
     process.stdout.write(`Downloading salmo ${num}...`)
     try {
       await downloadFile(url, dest)
-      updates[`urls.${num}`] = `/audio/salmo-${num}.ogg`
       downloaded++
       console.log(` OK`)
     } catch (e) {
@@ -105,12 +96,7 @@ async function main() {
     }
   }
 
-  // Batch update Firestore
-  if (Object.keys(updates).length > 0) {
-    await db.doc('content/audio').update(updates)
-  }
-
-  console.log(`\nDone! ${downloaded} downloaded, ${converted} converted (already had file), ${skipped} skipped (already local), ${failed} failed.`)
+  console.log(`\nDone! ${downloaded} downloaded, ${skipped} skipped, ${failed} failed.`)
 }
 
 main().then(() => process.exit()).catch(e => {

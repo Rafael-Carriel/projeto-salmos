@@ -9,7 +9,7 @@ import { db } from '../lib/firebase'
  */
 function toLocalPath(num: string, url: string): string {
   if (url.startsWith('/audio/')) return url
-  if (url.includes('drive.google.com')) return `/audio/salmo-${num}.ogg`
+  if (url.includes('google.com')) return `/audio/salmo-${num}.ogg`
   return url
 }
 

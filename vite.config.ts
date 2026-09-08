@@ -6,13 +6,15 @@ export default defineConfig({
   plugins: [
     react(),
     VitePWA({
-      registerType: 'prompt',
+      registerType: 'autoUpdate',
       // O service worker de push do FCM é um arquivo separado em public/.
       // Não deixamos o Workbox tentar controlá-lo.
-      injectRegister: null,
+      injectRegister: 'auto',
       workbox: {
-        // psalms.json entra no precache: é o conteúdo do aplicativo offline.
-        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2,json}'],
+        // Precache do app offline. psalms.json NÃO entra: ele é atualizado
+        // independentemente do bundle JS e o fetch em runtime cuida disso.
+        globPatterns: ['**/*.{js,css,html,ico,png,svg,woff2}'],
+        globIgnores: ['**/psalms.json'],
         navigateFallback: 'index.html',
         navigateFallbackDenylist: [/^\/firebase-messaging-sw\.js$/],
         runtimeCaching: [

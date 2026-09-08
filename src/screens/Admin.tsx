@@ -1,5 +1,6 @@
 import { collection, onSnapshot } from 'firebase/firestore'
 import { useEffect, useMemo, useState } from 'react'
+import { useNavigate } from 'react-router-dom'
 import { useAudioUrls, saveAudioUrl } from '../hooks/useAudioUrls'
 import { TOTAL_PSALMS, deriveCycle, todayKey, type UserProfile } from '../lib/cycle'
 import { db } from '../lib/firebase'
@@ -25,6 +26,9 @@ export function Admin() {
   const [error, setError] = useState('')
   const [sortKey, setSortKey] = useState<SortKey>('currentDay')
   const [asc, setAsc] = useState(false)
+  const [testPsalm, setTestPsalm] = useState(1)
+  const [testMessage, setTestMessage] = useState('')
+  const navigate = useNavigate()
   const today = todayKey()
 
   useEffect(() => {
@@ -194,6 +198,48 @@ export function Admin() {
           </table>
         </div>
       )}
+
+      <section className="block">
+        <h2>Testar salmo</h2>
+        <p className="note">
+          Navegue até qualquer salmo para verificar se está funcionando.
+        </p>
+        <div className="form-row">
+          <label className="field field--inline">
+            <span>Salmo</span>
+            <input
+              type="number"
+              min={1}
+              max={TOTAL_PSALMS}
+              value={testPsalm}
+              onChange={(e) => setTestPsalm(Number(e.target.value))}
+            />
+          </label>
+          <button
+            className="btn"
+            disabled={testPsalm < 1 || testPsalm > TOTAL_PSALMS}
+            onClick={() => navigate(`/salmo/${testPsalm}`)}
+          >
+            Abrir salmo
+          </button>
+        </div>
+      </section>
+
+      <section className="block">
+        <h2>Testar notificação</h2>
+        <p className="note">
+          Verifique se o sistema de notificações está funcionando.
+        </p>
+        <div className="form-row">
+          <button
+            className="btn"
+            onClick={() => setTestMessage('Notificação de teste recebida!')}
+          >
+            Enviar notificação de teste
+          </button>
+        </div>
+        {testMessage && <p className="note">{testMessage}</p>}
+      </section>
 
       <AudioAdmin />
     </>

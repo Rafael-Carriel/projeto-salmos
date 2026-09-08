@@ -1,6 +1,7 @@
 import { Link, useParams } from 'react-router-dom'
 import { PsalmLeaf } from '../components/PsalmLeaf'
 import { useAudioUrls } from '../hooks/useAudioUrls'
+import { useIsAdmin } from '../hooks/useIsAdmin'
 import type { ProfileState } from '../hooks/useProfile'
 import { TOTAL_PSALMS } from '../lib/cycle'
 import { getPsalm } from '../lib/psalms'
@@ -10,6 +11,7 @@ export function PsalmView({ state }: { state: ProfileState }) {
   const { number } = useParams()
   const { profile, cycle, toggleFavorite } = state
   const audioUrls = useAudioUrls()
+  const isAdmin = useIsAdmin()
 
   const n = Number(number)
   const psalm = Number.isInteger(n) ? getPsalm(n) : undefined
@@ -23,7 +25,7 @@ export function PsalmView({ state }: { state: ProfileState }) {
   }
 
   const unlockedThrough = cycle.status === 'not-started' ? 0 : cycle.unlockedThrough
-  if (n > unlockedThrough) {
+  if (n > unlockedThrough && !isAdmin) {
     return (
       <p className="empty">
         O Salmo {n} ainda não abriu. Ele chega no dia {n} do seu ciclo.{' '}

@@ -4,6 +4,7 @@ import { useNavigate } from 'react-router-dom'
 import { useAudioUrls, saveAudioUrl } from '../hooks/useAudioUrls'
 import { TOTAL_PSALMS, deriveCycle, todayKey, type UserProfile } from '../lib/cycle'
 import { db } from '../lib/firebase'
+import { showTestNotification } from '../lib/push'
 
 type Row = UserProfile & {
   /** Dia em que a pessoa está agora, já aplicando a regra do reset. */
@@ -233,7 +234,11 @@ export function Admin() {
         <div className="form-row">
           <button
             className="btn"
-            onClick={() => setTestMessage('Notificação de teste recebida!')}
+            onClick={() => {
+              void showTestNotification()
+                .then(() => setTestMessage('Notificação de teste emitida neste aparelho. Confira as notificações do navegador.'))
+                .catch((error: Error) => setTestMessage(error.message))
+            }}
           >
             Enviar notificação de teste
           </button>

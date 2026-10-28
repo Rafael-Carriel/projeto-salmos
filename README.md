@@ -228,6 +228,13 @@ content/audio    { urls: { "1": "https://…" } }
 
 ## Notas
 
+Em **Ajustes**, ative os lembretes em cada navegador/aparelho que deve recebê-los.
+O botão **Testar notificação neste aparelho** emite uma notificação real local;
+ele confirma a exibição no navegador, mas não valida sozinho o envio pelo FCM.
+Os lembretes automáticos só são enviados para ciclos ativos com leitura pendente.
+O agendamento do GitHub Actions está sujeito a atrasos e não garante entrega no
+minuto escolhido. Falhas de envio não são mais marcadas como entregas concluídas.
+
 **Push no iOS** exige que a pessoa adicione o aplicativo à Tela de Início
 primeiro — limitação do Safari, não do código. O aplicativo detecta e mostra a
 instrução em **Ajustes**.

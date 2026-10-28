@@ -2,7 +2,7 @@ import { useEffect, useState } from 'react'
 import { useAuth } from '../hooks/useAuth'
 import type { ProfileState } from '../hooks/useProfile'
 import { DEFAULT_NOTIFICATION_TIMES, TOTAL_PSALMS } from '../lib/cycle'
-import { disablePush, enablePush, needsInstallForPush, pushStatus, type PushStatus } from '../lib/push'
+import { disablePush, enablePush, needsInstallForPush, pushEnabledOnDevice, pushStatus, showTestNotification, type PushStatus } from '../lib/push'
 
 const SLOT_LABELS = ['Manhã', 'Tarde', 'Noite']
 
@@ -13,6 +13,7 @@ export function Settings({ state }: { state: ProfileState }) {
   const [status, setStatus] = useState<PushStatus>(pushStatus)
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [pushMessage, setPushMessage] = useState('')
 
   useEffect(() => {
     if (profile?.notificationTimes?.length) setTimes(profile.notificationTimes)
@@ -21,12 +22,16 @@ export function Settings({ state }: { state: ProfileState }) {
   if (!profile || !user) return null
 
   const dirty = times.join() !== (profile.notificationTimes ?? []).join()
+  const deviceEnabled = profile.notificationsEnabled && pushEnabledOnDevice(profile.fcmTokens)
 
   async function toggleNotifications(next: boolean) {
     setBusy(true)
     try {
+      setPushMessage('')
       if (next) setStatus(await enablePush(user!.uid))
       else await disablePush(user!.uid)
+    } catch (error) {
+      setPushMessage(error instanceof Error ? error.message : 'Não foi possível ativar os lembretes.')
     } finally {
       setBusy(false)
     }
@@ -40,23 +45,32 @@ export function Settings({ state }: { state: ProfileState }) {
 
       <div className="switch">
         <span className="switch__label">
-          <b>Lembretes no celular</b>
+          <b>Lembretes neste aparelho</b>
           <span>
             {status === 'denied'
               ? 'Bloqueado nas configurações do navegador. Libere as notificações do site e volte aqui.'
               : status === 'unsupported'
                 ? 'Este navegador não entrega notificações.'
-                : 'Três avisos por dia para você não perder o ciclo.'}
+                : deviceEnabled ? 'Este aparelho está cadastrado para receber os lembretes.' : 'Ative neste navegador para receber seus lembretes aqui.'}
           </span>
         </span>
         <button
           className="btn btn--ghost"
           disabled={busy || status === 'denied' || status === 'unsupported'}
-          onClick={() => void toggleNotifications(!profile.notificationsEnabled)}
+          onClick={() => void toggleNotifications(!deviceEnabled)}
         >
-          {profile.notificationsEnabled ? 'Desligar' : 'Ligar'}
+          {deviceEnabled ? 'Desligar' : 'Ligar neste aparelho'}
         </button>
       </div>
+
+      <button className="btn btn--ghost" disabled={busy || !deviceEnabled} onClick={() => {
+        setBusy(true)
+        void showTestNotification()
+          .then(() => setPushMessage('Notificação de teste emitida neste aparelho. Confira as notificações do navegador.'))
+          .catch((error: Error) => setPushMessage(error.message))
+          .finally(() => setBusy(false))
+      }}>Testar notificação neste aparelho</button>
+      {pushMessage && <p className="note" role="status">{pushMessage}</p>}
 
       {needsInstallForPush() && (
         <p className="note">

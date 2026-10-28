@@ -25,7 +25,7 @@ const messaging = firebase.messaging()
 // o navegador exibe sozinho, e tratar aqui duplicaria o aviso.
 messaging.onBackgroundMessage((payload) => {
   const data = payload.data ?? {}
-  self.registration.showNotification(data.title ?? 'Projeto Salmos', {
+  return self.registration.showNotification(data.title ?? 'Projeto Salmos', {
     body: data.body ?? 'Seu salmo de hoje está esperando.',
     icon: '/icons/icon-192.png',
     badge: '/icons/icon-192.png',

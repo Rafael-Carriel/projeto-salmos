@@ -56,7 +56,8 @@ function localNow(timezone) {
 
 function toMinutes(hhmm) {
   const [h, m] = String(hhmm).split(':').map(Number)
-  return Number.isFinite(h) && Number.isFinite(m) ? h * 60 + m : null
+  return /^\d{2}:\d{2}$/.test(String(hhmm)) && Number.isInteger(h) && Number.isInteger(m) &&
+    h >= 0 && h < 24 && m >= 0 && m < 60 ? h * 60 + m : null
 }
 
 function daysBetween(a, b) {
@@ -97,6 +98,7 @@ function compose(psalm, minutesNow) {
 const snapshot = await db.collection('users').where('notificationsEnabled', '==', true).get()
 let sent = 0
 let skipped = 0
+let failed = 0
 
 for (const document of snapshot.docs) {
   const profile = document.data()
@@ -106,7 +108,15 @@ for (const document of snapshot.docs) {
     continue
   }
 
-  const { date, minutes } = localNow(profile.timezone || 'America/Sao_Paulo')
+  let local
+  try {
+    local = localNow(profile.timezone || 'America/Sao_Paulo')
+  } catch {
+    console.error('Perfil ignorado: fuso horário inválido.')
+    skipped++
+    continue
+  }
+  const { date, minutes } = local
   const psalm = pendingPsalm(profile, date)
   if (!psalm) {
     skipped++
@@ -157,8 +167,7 @@ for (const document of snapshot.docs) {
     const code = result.error?.code
     if (
       code === 'messaging/registration-token-not-registered' ||
-      code === 'messaging/invalid-registration-token' ||
-      code === 'messaging/invalid-argument'
+      code === 'messaging/invalid-registration-token'
     ) {
       dead[`fcmTokens.${tokens[i]}`] = FieldValue.delete()
     } else if (result.error) {
@@ -166,17 +175,19 @@ for (const document of snapshot.docs) {
     }
   })
 
-  await document.ref.update({
-    ...dead,
-    sentToday: { date, slots: [...alreadySent, ...due] },
-  })
+  // Failed deliveries must remain eligible for the next scheduler attempt.
+  const patch = { ...dead }
+  if (response.successCount > 0) patch.sentToday = { date, slots: [...alreadySent, ...due] }
+  if (Object.keys(patch).length) await document.ref.update(patch)
 
   if (response.successCount > 0) sent++
+  else failed++
   if (Object.keys(dead).length) {
     console.log(`  ${Object.keys(dead).length} token(s) expirado(s) removido(s)`)
   }
 }
 
 console.log(
-  `${DRY_RUN ? '[simulação] ' : ''}${sent} lembrete(s) enviado(s), ${skipped} pessoa(s) sem nada pendente.`,
+  `${DRY_RUN ? '[simulação] ' : ''}${sent} lembrete(s) enviado(s), ${skipped} pessoa(s) sem nada pendente, ${failed} falha(s).`,
 )
+if (failed) process.exitCode = 1

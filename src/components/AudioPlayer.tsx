@@ -50,11 +50,19 @@ export function AudioPlayer({ src, label }: { src?: string; label: string }) {
   async function toggle() {
     const audio = ref.current
     if (!audio) return
+    if (failed && src) {
+      const fresh = new URL(src, window.location.origin)
+      fresh.searchParams.set('retry', String(Date.now()))
+      setFailed(false)
+      audio.src = fresh.href
+      audio.load()
+    }
     if (audio.paused) {
       try {
         await audio.play()
-      } catch {
-        setFailed(true)
+      } catch (error) {
+        // Changing salmos can interrupt a pending play request normally.
+        if (!(error instanceof DOMException && error.name === 'AbortError')) setFailed(true)
       }
     } else {
       audio.pause()
@@ -64,6 +72,7 @@ export function AudioPlayer({ src, label }: { src?: string; label: string }) {
   return (
     <div className="audio">
       <audio
+        key={src}
         ref={ref}
         src={src}
         preload="metadata"
@@ -77,13 +86,12 @@ export function AudioPlayer({ src, label }: { src?: string; label: string }) {
       <button
         className="audio__play"
         onClick={toggle}
-        disabled={failed}
-        aria-label={playing ? `Pausar ${label}` : `Ouvir ${label}`}
+        aria-label={failed ? `Tentar ouvir ${label} novamente` : playing ? `Pausar ${label}` : `Ouvir ${label}`}
       >
         {playing ? <IconPause /> : <IconPlay />}
       </button>
       {failed ? (
-        <span>Não consegui carregar o áudio. Ouça de novo com conexão.</span>
+        <span>Não consegui carregar o áudio. Toque no botão para tentar novamente.</span>
       ) : (
         <>
           <div

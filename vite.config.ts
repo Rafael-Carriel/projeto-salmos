@@ -20,7 +20,8 @@ export default defineConfig({
         runtimeCaching: [
           {
             // Áudio dos salmos: cacheia sob demanda, o que já foi ouvido fica offline.
-            urlPattern: /\/audio\/.*\.(mp3|m4a|ogg)$/,
+            urlPattern: ({ url }) =>
+              /^\/audio\/.*\.(mp3|m4a|ogg)$/.test(url.pathname) && !url.searchParams.has('retry'),
             handler: 'CacheFirst',
             options: {
               cacheName: 'salmos-audio-v2',

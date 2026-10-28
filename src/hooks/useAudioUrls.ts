@@ -8,10 +8,11 @@ import { db } from '../lib/firebase'
  * pelo sync-audio.mjs e hospedados em /audio/salmo-N.ogg.
  */
 function toLocalPath(num: string, url: string): string {
-  if (url.startsWith('/audio/')) return url
+  // A new URL also bypasses HTML cached by the browser before the audio existed.
+  if (url.startsWith('/audio/')) return `${url}${url.includes('?') ? '&' : '?'}v=2`
   try {
     if (['drive.google.com', 'drive.usercontent.google.com'].includes(new URL(url).hostname)) {
-      return `/audio/salmo-${num}.ogg`
+      return `/audio/salmo-${num}.ogg?v=2`
     }
   } catch {
     // Preserve relative paths and let the player report invalid addresses.

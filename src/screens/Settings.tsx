@@ -27,9 +27,18 @@ export function Settings({ state }: { state: ProfileState }) {
   async function toggleNotifications(next: boolean) {
     setBusy(true)
     try {
-      setPushMessage('')
-      if (next) setStatus(await enablePush(user!.uid))
-      else await disablePush(user!.uid)
+      if (next) {
+        const result = await enablePush(user!.uid, setPushMessage)
+        setStatus(result)
+        setPushMessage(result === 'granted' ? 'Lembretes ativados neste aparelho. Você já pode testar a notificação.'
+          : result === 'denied' ? 'O navegador bloqueou as notificações. Libere a permissão do site para receber lembretes.'
+          : result === 'unsupported' ? 'Este navegador não oferece suporte aos lembretes. Abra o site no Chrome ou Edge.'
+          : 'A permissão não foi concedida. Clique em Ligar e permita as notificações no navegador.')
+      } else {
+        setPushMessage('Desligando os lembretes neste aparelho…')
+        await disablePush(user!.uid)
+        setPushMessage('Lembretes desligados neste aparelho.')
+      }
     } catch (error) {
       setPushMessage(error instanceof Error ? error.message : 'Não foi possível ativar os lembretes.')
     } finally {
@@ -59,12 +68,13 @@ export function Settings({ state }: { state: ProfileState }) {
           disabled={busy || status === 'denied' || status === 'unsupported'}
           onClick={() => void toggleNotifications(!deviceEnabled)}
         >
-          {deviceEnabled ? 'Desligar' : 'Ligar neste aparelho'}
+          {busy ? 'Aguarde…' : deviceEnabled ? 'Desligar' : 'Ligar neste aparelho'}
         </button>
       </div>
 
-      <button className="btn btn--ghost" disabled={busy || !deviceEnabled} onClick={() => {
+      <button className="btn btn--ghost" disabled={busy} onClick={() => {
         setBusy(true)
+        setPushMessage('Testando a notificação neste aparelho…')
         void showTestNotification()
           .then(() => setPushMessage('Notificação de teste emitida neste aparelho. Confira as notificações do navegador.'))
           .catch((error: Error) => setPushMessage(error.message))

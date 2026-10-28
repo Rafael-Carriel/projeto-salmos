@@ -1,6 +1,7 @@
 import { deleteField, doc, runTransaction, setDoc } from 'firebase/firestore'
 import { getMessaging, getToken, isSupported, onMessage } from 'firebase/messaging'
 import { app, db } from './firebase'
+import { pushTimeout } from './pushTimeout'
 
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY as string | undefined
 
@@ -26,16 +27,19 @@ export async function showTestNotification(): Promise<void> {
   if (pushStatus() !== 'granted') {
     throw new Error('Ative os lembretes neste navegador em Ajustes antes de testar.')
   }
-  const registration = await navigator.serviceWorker.getRegistration('/firebase-cloud-messaging-push-scope')
+  const registration = await pushTimeout(
+    navigator.serviceWorker.getRegistration('/firebase-cloud-messaging-push-scope'),
+    'O navegador não respondeu ao teste. Recarregue a página e tente novamente.',
+  )
   if (!registration?.active || new URL(registration.active.scriptURL).pathname !== '/firebase-messaging-sw.js') {
     throw new Error('Este aparelho ainda não está registrado. Ative os lembretes em Ajustes.')
   }
-  await registration.showNotification('Teste — Projeto Salmos', {
+  await pushTimeout(registration.showNotification('Teste — Projeto Salmos', {
     body: 'As notificações deste aparelho estão funcionando.',
     icon: '/icons/icon-192.png',
     tag: 'salmos-teste',
     data: { url: '/' },
-  })
+  }), 'O navegador não concluiu a exibição da notificação. Teste no Chrome ou Edge fora do navegador integrado.')
 }
 
 /** iOS só entrega push se o PWA estiver instalado na tela inicial. */
@@ -52,15 +56,22 @@ export function needsInstallForPush(): boolean {
  * Pede permissão, registra o token do FCM e o guarda no perfil.
  * O agendador (GitHub Actions) lê esses tokens para enviar os lembretes.
  */
-export async function enablePush(uid: string): Promise<PushStatus> {
-  if (!(await isSupported())) return 'unsupported'
+export async function enablePush(uid: string, progress: (message: string) => void = () => {}): Promise<PushStatus> {
+  if (pushStatus() === 'unsupported') return 'unsupported'
   if (!VAPID_KEY) {
     console.warn('VITE_FIREBASE_VAPID_KEY não definida — push desativado.')
     return 'unsupported'
   }
 
-  const permission = await Notification.requestPermission()
+  // Request before any await so browsers retain the button's user gesture.
+  progress('Aguardando a permissão de notificações do navegador…')
+  const permission = await pushTimeout(
+    Notification.permission === 'granted' ? Promise.resolve('granted' as const) : Notification.requestPermission(),
+    'O navegador não respondeu ao pedido de permissão. Abra este site no Chrome ou Edge e permita as notificações.',
+  )
   if (permission !== 'granted') return permission as PushStatus
+  progress('Verificando o suporte a lembretes deste navegador…')
+  if (!(await pushTimeout(isSupported(), 'O navegador não concluiu a verificação de notificações. Use o Chrome ou Edge.'))) return 'unsupported'
 
   // public/ não passa pelo Vite, então a config vai na query string.
   // São valores públicos do projeto — nada sigiloso trafega aqui.
@@ -71,24 +82,27 @@ export async function enablePush(uid: string): Promise<PushStatus> {
     messagingSenderId: import.meta.env.VITE_FIREBASE_MESSAGING_SENDER_ID,
     appId: import.meta.env.VITE_FIREBASE_APP_ID,
   })
-  const registration = await navigator.serviceWorker.register(
+  progress('Preparando as notificações neste aparelho…')
+  const registration = await pushTimeout(navigator.serviceWorker.register(
     `/firebase-messaging-sw.js?${config}`,
     { scope: '/firebase-cloud-messaging-push-scope' },
-  )
-  const token = await getToken(getMessaging(app), {
+  ), 'Não foi possível preparar as notificações. Confira a conexão e tente novamente.')
+  progress('Conectando este aparelho ao serviço de lembretes…')
+  const token = await pushTimeout(getToken(getMessaging(app), {
     vapidKey: VAPID_KEY,
     serviceWorkerRegistration: registration,
-  })
+  }), 'Este navegador não concluiu o cadastro de notificações. Abra o site no Chrome ou Edge e tente novamente.', 25000)
   if (!token) return 'denied'
 
-  await setDoc(
+  progress('Salvando a ativação dos lembretes…')
+  await pushTimeout(setDoc(
     doc(db, 'users', uid),
     {
       notificationsEnabled: true,
       fcmTokens: { [token]: Date.now() },
     },
     { merge: true },
-  )
+  ), 'A ativação ainda não foi confirmada. Confira a conexão e tente novamente.')
   localStorage.setItem('salmos:fcmToken', token)
   return 'granted'
 }

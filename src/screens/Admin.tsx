@@ -291,7 +291,7 @@ function AudioAdmin() {
             setBusy(true)
             void saveAudioUrl(Number(psalm), url)
               .then(() => {
-                setMessage(`Áudio do Salmo ${psalm} salvo.`)
+                setMessage(`Link do Salmo ${psalm} salvo. O áudio ficará disponível após a próxima publicação do site.`)
                 setUrl('')
               })
               .catch((err: Error) => setMessage(`Não salvou: ${err.message}`))

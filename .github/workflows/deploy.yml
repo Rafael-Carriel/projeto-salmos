@@ -18,16 +18,19 @@ jobs:
 
       - run: npm ci
 
+      - run: node --test scripts/audio-download.test.mjs
+
       - name: Cache audio files
         uses: actions/cache@v4
         with:
           path: public/audio
-          key: audio-v1-${{ hashFiles('scripts/drive-audio-urls.json') }}
+          key: audio-v2-${{ github.run_id }}
+          restore-keys: audio-v2-
 
       - name: Sync audio from Drive URLs
         env:
           FIREBASE_SERVICE_ACCOUNT: ${{ secrets.FIREBASE_SERVICE_ACCOUNT }}
-        run: node scripts/sync-audio.mjs || echo "⚠️ Sync audio failed (non-fatal, skipping)"
+        run: node scripts/sync-audio.mjs
 
       - name: Build
         env:

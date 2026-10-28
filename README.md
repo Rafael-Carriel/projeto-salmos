@@ -155,6 +155,15 @@ quem receberia antes de enviar de verdade.
 
 ## Áudio
 
+Links do Google Drive nos formatos `/file/d/ID/view`, `/uc?id=ID` e
+`drive.usercontent.google.com/download?id=ID` são aceitos. O aplicativo reproduz
+a cópia hospedada em `/audio/salmo-N.ogg`, não a página do Drive.
+Depois de cadastrar links no painel, execute o workflow **Publicar no Firebase
+Hosting** no GitHub Actions para sincronizar e publicar as novas narrações.
+O arquivo deve ser OGG e permitir download público. A sincronização converte
+links de visualização em download, valida o conteúdo e interrompe a publicação
+se encontrar arquivos inválidos. Alterar o link também invalida a cópia em cache.
+
 O aplicativo guarda apenas a **URL** de cada narração, em
 `content/audio → urls: { "1": "https://…" }`. Você cola os links no **Painel →
 Áudio dos salmos**, um por salmo. O player aparece desabilitado ("Narração ainda

@@ -23,7 +23,14 @@ export default defineConfig({
             urlPattern: /\/audio\/.*\.(mp3|m4a|ogg)$/,
             handler: 'CacheFirst',
             options: {
-              cacheName: 'salmos-audio',
+              cacheName: 'salmos-audio-v2',
+              plugins: [{
+                cacheWillUpdate: async ({ response }) =>
+                  response.status === 200 &&
+                  (response.headers.get('content-type') ?? '').startsWith('audio/')
+                    ? response
+                    : null,
+              }],
               expiration: { maxEntries: 160, maxAgeSeconds: 60 * 60 * 24 * 180 },
               cacheableResponse: { statuses: [0, 200] },
               rangeRequests: true,

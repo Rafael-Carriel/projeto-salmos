@@ -9,7 +9,13 @@ import { db } from '../lib/firebase'
  */
 function toLocalPath(num: string, url: string): string {
   if (url.startsWith('/audio/')) return url
-  if (url.includes('google.com')) return `/audio/salmo-${num}.ogg`
+  try {
+    if (['drive.google.com', 'drive.usercontent.google.com'].includes(new URL(url).hostname)) {
+      return `/audio/salmo-${num}.ogg`
+    }
+  } catch {
+    // Preserve relative paths and let the player report invalid addresses.
+  }
   return url
 }
 

@@ -19,6 +19,23 @@ export function Settings({ state }: { state: ProfileState }) {
     if (profile?.notificationTimes?.length) setTimes(profile.notificationTimes)
   }, [profile?.notificationTimes])
 
+  useEffect(() => {
+    const refresh = () => setStatus(pushStatus())
+    window.addEventListener('focus', refresh)
+    document.addEventListener('visibilitychange', refresh)
+    let permission: PermissionStatus | undefined
+    void navigator.permissions?.query({ name: 'notifications' }).then((result) => {
+      permission = result
+      result.addEventListener('change', refresh)
+      refresh()
+    }).catch(() => {})
+    return () => {
+      window.removeEventListener('focus', refresh)
+      document.removeEventListener('visibilitychange', refresh)
+      permission?.removeEventListener('change', refresh)
+    }
+  }, [])
+
   if (!profile || !user) return null
 
   const dirty = times.join() !== (profile.notificationTimes ?? []).join()
@@ -51,6 +68,9 @@ export function Settings({ state }: { state: ProfileState }) {
       <div className="section-head">
         <h1>Ajustes</h1>
       </div>
+      <p className="note" aria-live="polite">
+        Permissão de notificações neste navegador: {status === 'granted' ? 'permitida' : status === 'denied' ? 'bloqueada' : status === 'unsupported' ? 'sem suporte' : 'aguardando autorização'}.
+      </p>
 
       <div className="switch">
         <span className="switch__label">

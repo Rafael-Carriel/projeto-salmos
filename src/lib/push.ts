@@ -2,6 +2,7 @@ import { deleteField, doc, runTransaction, setDoc } from 'firebase/firestore'
 import { getMessaging, getToken, isSupported, onMessage } from 'firebase/messaging'
 import { app, db } from './firebase'
 import { pushTimeout } from './pushTimeout'
+import { displayNotification, requestNotificationPermission } from './notificationDisplay'
 
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY as string | undefined
 
@@ -24,22 +25,10 @@ export function pushEnabledOnDevice(tokens: Record<string, number> = {}): boolea
 
 /** Displays a real browser notification on this device, without messaging others. */
 export async function showTestNotification(): Promise<void> {
-  if (pushStatus() !== 'granted') {
-    throw new Error('Ative os lembretes neste navegador em Ajustes antes de testar.')
-  }
-  const registration = await pushTimeout(
-    navigator.serviceWorker.getRegistration('/firebase-cloud-messaging-push-scope'),
-    'O navegador não respondeu ao teste. Recarregue a página e tente novamente.',
-  )
-  if (!registration?.active || new URL(registration.active.scriptURL).pathname !== '/firebase-messaging-sw.js') {
-    throw new Error('Este aparelho ainda não está registrado. Ative os lembretes em Ajustes.')
-  }
-  await pushTimeout(registration.showNotification('Teste — Projeto Salmos', {
-    body: 'As notificações deste aparelho estão funcionando.',
-    icon: '/icons/icon-192.png',
-    tag: 'salmos-teste',
-    data: { url: '/' },
-  }), 'O navegador não concluiu a exibição da notificação. Teste no Chrome ou Edge fora do navegador integrado.')
+  if (pushStatus() === 'unsupported') throw new Error('Este navegador não possui a função de notificações.')
+  const permission = await requestNotificationPermission()
+  if (permission !== 'granted') throw new Error('O navegador não concedeu permissão para exibir a notificação.')
+  await displayNotification('Teste — Projeto Salmos', 'Esta é a notificação de teste que você solicitou.')
 }
 
 /** iOS só entrega push se o PWA estiver instalado na tela inicial. */
@@ -65,10 +54,7 @@ export async function enablePush(uid: string, progress: (message: string) => voi
 
   // Request before any await so browsers retain the button's user gesture.
   progress('Aguardando a permissão de notificações do navegador…')
-  const permission = await pushTimeout(
-    Notification.permission === 'granted' ? Promise.resolve('granted' as const) : Notification.requestPermission(),
-    'O navegador não respondeu ao pedido de permissão. Abra este site no Chrome ou Edge e permita as notificações.',
-  )
+  const permission = await requestNotificationPermission()
   if (permission !== 'granted') return permission as PushStatus
   progress('Verificando o suporte a lembretes deste navegador…')
   if (!(await pushTimeout(isSupported(), 'O navegador não concluiu a verificação de notificações. Use o Chrome ou Edge.'))) return 'unsupported'
@@ -127,9 +113,11 @@ export async function disablePush(uid: string): Promise<void> {
 export async function onForegroundPush(handler: (title: string, body: string) => void) {
   if (!(await isSupported())) return () => {}
   return onMessage(getMessaging(app), (payload) => {
-    handler(
-      payload.data?.title ?? payload.notification?.title ?? 'Projeto Salmos',
-      payload.data?.body ?? payload.notification?.body ?? 'Seu salmo de hoje está esperando.',
-    )
+    const title = payload.data?.title ?? payload.notification?.title ?? 'Projeto Salmos'
+    const body = payload.data?.body ?? payload.notification?.body ?? 'Seu salmo de hoje está esperando.'
+    handler(title, body)
+    if (pushStatus() === 'granted') {
+      void displayNotification(title, body).catch((error) => console.error('Falha ao exibir notificação:', error))
+    }
   })
 }

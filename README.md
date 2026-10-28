@@ -155,6 +155,12 @@ quem receberia antes de enviar de verdade.
 
 ## Áudio
 
+O Salmo 150 também tem uma cópia MP3 de compatibilidade em
+`public/audio/salmo-150-v3.mp3`, mantida no Git para permanecer disponível em
+novas publicações. Ela foi convertida do arquivo original do Drive
+`19W6FRCGMhj4NHQ0djtAT67Kckr42iV5l` (aproximadamente 50 segundos).
+O cadastro desse salmo aponta diretamente para essa cópia publicada.
+
 Links do Google Drive nos formatos `/file/d/ID/view`, `/uc?id=ID` e
 `drive.usercontent.google.com/download?id=ID` são aceitos. O aplicativo reproduz
 a cópia hospedada em `/audio/salmo-N.ogg`, não a página do Drive.

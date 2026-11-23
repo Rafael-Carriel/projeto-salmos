@@ -12,7 +12,9 @@ import { useIsAdmin } from './hooks/useIsAdmin'
 import { useOnline } from './hooks/useOnline'
 import { useProfile } from './hooks/useProfile'
 import { TOTAL_PSALMS } from './lib/cycle'
-import { onForegroundPush } from './lib/push'
+import { onForegroundPush, pushEnabledOnDevice } from './lib/push'
+import { displayNotification } from './lib/notificationDisplay'
+import { claimReminder, reminderAt } from './lib/reminderClock'
 import { Favorites } from './screens/Favorites'
 import { Login } from './screens/Login'
 import { PsalmView } from './screens/PsalmView'
@@ -30,12 +32,44 @@ export function App() {
   const online = useOnline()
   const location = useLocation()
   const [toast, setToast] = useState('')
+  const uid = user?.uid
+  const profileForReminder = state.profile
 
   useEffect(() => {
+    if (!uid) return
+    let cancelled = false
     let dispose: (() => void) | undefined
-    void onForegroundPush((_title, body) => setToast(body)).then((fn) => (dispose = fn))
-    return () => dispose?.()
-  }, [])
+    void onForegroundPush((_title, body, date, slot) => {
+      if (cancelled || (date && slot && !claimReminder(uid, date, slot))) return false
+      setToast(body)
+    }).then((fn) => {
+      if (cancelled) fn()
+      else dispose = fn
+    }).catch((error) => console.error('Falha ao ouvir notificações:', error))
+    return () => { cancelled = true; dispose?.() }
+  }, [uid])
+
+  useEffect(() => {
+    if (!uid || profileForReminder?.uid !== uid || !profileForReminder.notificationsEnabled) return
+    const check = () => {
+      if (document.visibilityState !== 'visible' || !pushEnabledOnDevice(profileForReminder.fcmTokens)) return
+      try {
+        const reminder = reminderAt(profileForReminder)
+        if (!reminder || !claimReminder(uid, reminder.date, reminder.slot)) return
+        setToast(reminder.body)
+        void displayNotification(reminder.title, reminder.body).catch(console.error)
+      } catch (error) {
+        console.error('Falha ao verificar horário do lembrete:', error)
+      }
+    }
+    check()
+    const timer = window.setInterval(check, 1000)
+    document.addEventListener('visibilitychange', check)
+    return () => {
+      clearInterval(timer)
+      document.removeEventListener('visibilitychange', check)
+    }
+  }, [uid, profileForReminder])
 
   useEffect(() => {
     if (!toast) return

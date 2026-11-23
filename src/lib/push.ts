@@ -110,12 +110,12 @@ export async function disablePush(uid: string): Promise<void> {
 }
 
 /** Push recebido com o app aberto: o SW não mostra nada, então tratamos aqui. */
-export async function onForegroundPush(handler: (title: string, body: string) => void) {
+export async function onForegroundPush(handler: (title: string, body: string, date?: string, slot?: string) => boolean | void) {
   if (!(await isSupported())) return () => {}
   return onMessage(getMessaging(app), (payload) => {
     const title = payload.data?.title ?? payload.notification?.title ?? 'Projeto Salmos'
     const body = payload.data?.body ?? payload.notification?.body ?? 'Seu salmo de hoje está esperando.'
-    handler(title, body)
+    if (handler(title, body, payload.data?.reminderDate, payload.data?.reminderSlot) === false) return
     if (pushStatus() === 'granted') {
       void displayNotification(title, body).catch((error) => console.error('Falha ao exibir notificação:', error))
     }

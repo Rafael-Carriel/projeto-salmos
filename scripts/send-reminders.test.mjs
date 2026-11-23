@@ -60,6 +60,17 @@ test('late scheduler runs combine due slots and never resend a recorded slot', a
   assert.equal((await run({ profile: { sentToday: { date: '2026-10-28', slots: ['08:00'] } } })).sends.length, 0)
 })
 
+test('a saved 10:03 reminder is eligible at 10:03 and at the next server check', async () => {
+  const profile = { notificationTimes: ['10:03', '12:30', '20:00'] }
+  assert.equal((await run({ time: '2026-10-28T13:02:59Z', profile })).sends.length, 0)
+  for (const time of ['2026-10-28T13:03:00Z', '2026-10-28T13:07:00Z']) {
+    const result = await run({ time, profile })
+    assert.equal(result.sends.length, 1)
+    assert.equal(result.sends[0].data.reminderSlot, '10:03')
+    assert.deepEqual(result.updates[0].sentToday.slots, ['10:03'])
+  }
+})
+
 test('reading today, losing the cycle, completing it or having no token prevents sends', async () => {
   for (const profile of [
     { lastReadDate: '2026-10-28' }, { cycleStartDate: '2026-09-08', lastReadDay: 1 },

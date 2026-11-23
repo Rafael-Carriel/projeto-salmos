@@ -29,6 +29,7 @@ export type UserProfile = {
   /** Horários locais "HH:MM" em que o usuário quer ser lembrado. */
   notificationTimes: string[]
   fcmTokens?: Record<string, number>
+  sentToday?: { date: string; slots: string[] }
   /** IANA, ex. "America/Sao_Paulo" — usado pelo agendador de push. */
   timezone: string
 }

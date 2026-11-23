@@ -155,7 +155,7 @@ for (const document of snapshot.docs) {
   // texto e o clique ficam sob nosso controle nas duas plataformas.
   const response = await messaging.sendEachForMulticast({
     tokens,
-    data: { title, body, url: APP_URL, psalm: String(psalm) },
+    data: { title, body, url: APP_URL, psalm: String(psalm), reminderDate: date, reminderSlot: slot },
     webpush: {
       headers: { Urgency: 'normal', TTL: '10800' },
       fcmOptions: { link: APP_URL },

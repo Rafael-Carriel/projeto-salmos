@@ -13,6 +13,7 @@ export function Settings({ state }: { state: ProfileState }) {
   const [status, setStatus] = useState<PushStatus>(pushStatus)
   const [busy, setBusy] = useState(false)
   const [saved, setSaved] = useState(false)
+  const [scheduleError, setScheduleError] = useState('')
   const [pushMessage, setPushMessage] = useState('')
 
   useEffect(() => {
@@ -125,6 +126,7 @@ export function Settings({ state }: { state: ProfileState }) {
                   next[i] = e.target.value
                   setTimes(next)
                   setSaved(false)
+                  setScheduleError('')
                 }}
               />
             </label>
@@ -134,17 +136,20 @@ export function Settings({ state }: { state: ProfileState }) {
         <div className="block__actions">
           <button
             className="btn"
-            disabled={!dirty || busy}
+            disabled={!dirty || busy || times.some((time) => !time)}
             onClick={() => {
               setBusy(true)
+              setScheduleError('')
               void saveNotificationSettings({ notificationTimes: times })
                 .then(() => setSaved(true))
+                .catch(() => setScheduleError('Não foi possível salvar os horários. Tente novamente.'))
                 .finally(() => setBusy(false))
             }}
           >
             Salvar horários
           </button>
           {saved && !dirty && <span className="note">Salvo.</span>}
+          {scheduleError && <span className="note" role="alert">{scheduleError}</span>}
         </div>
       </section>
 

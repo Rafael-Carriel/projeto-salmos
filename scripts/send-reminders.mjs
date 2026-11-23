@@ -151,13 +151,14 @@ for (const document of snapshot.docs) {
     continue
   }
 
-  // Mensagem só com `data`: quem exibe é o nosso service worker, então o
-  // texto e o clique ficam sob nosso controle nas duas plataformas.
+  // O Firebase exibe a notificação quando a página está fechada ou em segundo plano.
   const response = await messaging.sendEachForMulticast({
     tokens,
+    notification: { title, body },
     data: { title, body, url: APP_URL, psalm: String(psalm), reminderDate: date, reminderSlot: slot },
     webpush: {
-      headers: { Urgency: 'normal', TTL: '10800' },
+      headers: { Urgency: 'high', TTL: '10800' },
+      notification: { icon: '/icons/icon-192.png', badge: '/icons/icon-192.png', tag: 'salmo-do-dia', renotify: true },
       fcmOptions: { link: APP_URL },
     },
   })

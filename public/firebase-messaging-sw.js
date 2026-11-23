@@ -21,9 +21,10 @@ firebase.initializeApp({
 
 const messaging = firebase.messaging()
 
-// Só cai aqui em mensagens "data-only". As que trazem `notification`
-// o navegador exibe sozinho, e tratar aqui duplicaria o aviso.
+// O SDK já exibe as mensagens que trazem notification. Mantenha a exibição
+// manual para envios antigos que trazem somente data.
 messaging.onBackgroundMessage((payload) => {
+  if (payload.notification) return
   const data = payload.data ?? {}
   return self.registration.showNotification(data.title ?? 'Projeto Salmos', {
     body: data.body ?? 'Seu salmo de hoje está esperando.',

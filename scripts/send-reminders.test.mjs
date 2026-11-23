@@ -50,6 +50,8 @@ test('reminders are never sent early and are sent when the local time is due', a
   const result = await run()
   assert.equal(result.sends.length, 1)
   assert.equal(result.sends[0].data.title, 'Salmo 1')
+  assert.equal(result.sends[0].notification.title, 'Salmo 1')
+  assert.equal(result.sends[0].webpush.headers.Urgency, 'high')
   assert.deepEqual(result.updates[0].sentToday.slots, ['08:00'])
 })
 

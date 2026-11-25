@@ -47,6 +47,12 @@ export function firebaseRest(projectId, token, request = fetch) {
   })
 
   return {
+    async verifyMessaging(device) {
+      const sent = await call(fcm, 'POST', { validate_only: true, message: {
+        token: device, notification: { title: 'Projeto Salmos', body: 'Verificação do agendador' },
+      } })
+      if (!sent.ok) throw new Error(`Verificação FCM HTTP ${sent.status}`)
+    },
     async profiles() {
       const response = await call(`${documents}:runQuery`, 'POST', { structuredQuery: {
         from: [{ collectionId: 'users' }],
@@ -57,8 +63,17 @@ export function firebaseRest(projectId, token, request = fetch) {
       return (await response.json()).filter((row) => row.document).map(({ document }) => ({
         id: document.name.split('/').at(-1),
         data: () => Object.fromEntries(Object.entries(document.fields ?? {}).map(([key, value]) => [key, decode(value)])),
+        async verifyUpdate() {
+          const url = new URL(`https://firestore.googleapis.com/v1/${document.name}`)
+          url.searchParams.set('currentDocument.updateTime', '2000-01-01T00:00:00Z')
+          url.searchParams.set('updateMask.fieldPaths', 'sentToday')
+          const response = await call(url, 'PATCH', { fields: {} })
+          const { error } = await response.json()
+          if (error?.status !== 'FAILED_PRECONDITION') throw new Error(`Verificação de atualização Firestore HTTP ${response.status}`)
+        },
         async update(patch) {
           const url = new URL(`https://firestore.googleapis.com/v1/${document.name}`)
+          url.searchParams.set('currentDocument.exists', 'true')
           const fields = {}
           for (const [key, value] of Object.entries(patch)) {
             if (key.startsWith('fcmTokens.') && value === DELETE_FIELD) {
@@ -105,8 +120,24 @@ export function firebaseRest(projectId, token, request = fetch) {
 
 export default {
   async scheduled(_event, env) {
+    const dryRun = env.REMINDERS_DRY_RUN === 'true'
+    if (dryRun && !env.FIREBASE_SERVICE_ACCOUNT) {
+      console.info('Agendador executado em verificação. Conexão Firebase pendente.')
+      return
+    }
     const firebase = firebaseRest(env.FIREBASE_PROJECT_ID, await googleToken(env.FIREBASE_SERVICE_ACCOUNT))
-    const { failed } = await sendReminders({ profiles: await firebase.profiles(), messaging: firebase, appUrl: env.APP_URL })
+    const profiles = await firebase.profiles()
+    if (dryRun) {
+      const profile = profiles.find((entry) => Object.keys(entry.data().fcmTokens ?? {}).length > 0)
+      const device = profile && Object.keys(profile.data().fcmTokens)[0]
+      if (profile) await profile.verifyUpdate()
+      if (device) await firebase.verifyMessaging(device)
+      console.info(device ? 'Firebase: leitura, atualização e FCM validados sem enviar avisos.' : 'Firebase conectado; nenhum aparelho para validar FCM.')
+    }
+    const { failed } = await sendReminders({
+      profiles, messaging: firebase, appUrl: env.APP_URL,
+      dryRun,
+    })
     if (failed) throw new Error(`${failed} lembrete(s) com falha de envio`)
   },
 }

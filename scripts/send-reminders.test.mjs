@@ -1,9 +1,7 @@
 import test from 'node:test'
 import assert from 'node:assert/strict'
-import { readFile } from 'node:fs/promises'
-import { createContext, SourceTextModule, SyntheticModule } from 'node:vm'
+import { DELETE_FIELD, sendReminders } from '../reminders/send-reminders.mjs'
 
-const source = await readFile(new URL('./send-reminders.mjs', import.meta.url), 'utf8')
 const base = {
   cycleStartDate: '2026-10-28', lastReadDay: 0, lastReadDate: null,
   timezone: 'America/Sao_Paulo', notificationTimes: ['08:00', '12:30', '20:00'],
@@ -11,38 +9,30 @@ const base = {
 }
 
 async function run({ time = '2026-10-28T11:00:00Z', profile = {}, dry = false, responses = [{ success: true }] } = {}) {
-  const sends = [], updates = [], logs = []
-  const document = { id: 'test-account', data: () => ({ ...base, ...profile }), ref: { update: async (patch) => updates.push(patch) } }
-  class FixedDate extends Date { constructor(...args) { super(...(args.length ? args : [time])) } }
-  const context = createContext({
-    Date: FixedDate, Intl,
-    process: { env: { FIREBASE_SERVICE_ACCOUNT: '{}', APP_URL: 'https://example.com', DRY_RUN: dry ? '1' : '0' }, argv: [] },
-    console: { log: (...args) => logs.push(args.join(' ')), error: (...args) => logs.push(args.join(' ')) },
-  })
-  const modules = {
-    'firebase-admin/app': { cert: (value) => value, initializeApp: () => {} },
-    'firebase-admin/firestore': { FieldValue: { delete: () => 'DELETE' }, getFirestore: () => ({ collection: () => ({ where: () => ({ get: async () => ({ docs: [document] }) }) }) }) },
-    'firebase-admin/messaging': { getMessaging: () => ({ sendEachForMulticast: async (message) => {
-      sends.push(message)
-      return { responses, successCount: responses.filter((r) => r.success).length }
-    } }) },
+  const sends = []
+  const updates = []
+  const document = {
+    id: 'test-account',
+    data: () => ({ ...base, ...profile }),
+    update: async (patch) => { updates.push(patch) },
   }
-  const module = new SourceTextModule(source, { context })
-  await module.link((specifier) => {
-    const values = modules[specifier]
-    return new SyntheticModule(Object.keys(values), function () {
-      for (const [key, value] of Object.entries(values)) this.setExport(key, value)
-    }, { context })
+  const messaging = {
+    async sendEachForMulticast(message) {
+      sends.push(message)
+      return { responses, successCount: responses.filter((response) => response.success).length }
+    },
+  }
+  const result = await sendReminders({
+    profiles: [document], messaging, appUrl: 'https://example.com', now: new Date(time), dryRun: dry,
   })
-  await module.evaluate()
-  return JSON.parse(JSON.stringify({ sends, updates, logs }))
+  return { sends, updates, result }
 }
 
 test('simulation never sends or changes a user profile', async () => {
   const result = await run({ dry: true })
   assert.equal(result.sends.length, 0)
   assert.equal(result.updates.length, 0)
-  assert.ok(result.logs.some((line) => line.includes('[simulação] 1')))
+  assert.deepEqual(result.result, { sent: 1, skipped: 0, failed: 0 })
 })
 
 test('reminders are never sent early and are sent when the local time is due', async () => {
@@ -87,7 +77,9 @@ test('a failed delivery remains eligible and does not delete a token for payload
 
 test('expired registration tokens are removed without recording a successful delivery', async () => {
   const result = await run({ responses: [{ success: false, error: { code: 'messaging/registration-token-not-registered' } }] })
-  assert.deepEqual(result.updates, [{ 'fcmTokens.test-token': 'DELETE' }])
+  assert.equal(result.updates.length, 1)
+  assert.deepEqual(Object.keys(result.updates[0]), ['fcmTokens.test-token'])
+  assert.equal(result.updates[0]['fcmTokens.test-token'], DELETE_FIELD)
 })
 
 test('invalid time zones and invalid reminder times do not crash or send early', async () => {

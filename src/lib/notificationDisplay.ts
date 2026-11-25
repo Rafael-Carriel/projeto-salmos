@@ -31,6 +31,25 @@ export function requestNotificationPermission(): Promise<NotificationPermission>
   })
 }
 
+export async function waitForActiveWorker(registration: ServiceWorkerRegistration): Promise<void> {
+  if (registration.active?.state === 'activated') return
+  const worker = registration.installing ?? registration.waiting ?? registration.active
+  if (!worker) throw new Error('Não foi possível iniciar o serviço de notificações.')
+  let changed: () => void = () => {}
+  try {
+    await pushTimeout(new Promise<void>((resolve, reject) => {
+      changed = () => {
+        if (worker.state === 'activated') resolve()
+        else if (worker.state === 'redundant') reject(new Error('Falha ao preparar as notificações.'))
+      }
+      worker.addEventListener('statechange', changed)
+      changed()
+    }), 'O navegador não ativou o serviço de notificações. Confira a conexão e tente novamente.')
+  } finally {
+    worker.removeEventListener('statechange', changed)
+  }
+}
+
 export async function displayNotification(title: string, body: string): Promise<void> {
   // Desktop browsers support direct notifications. Wait for the actual show
   // event instead of treating a fulfilled worker request as visible delivery.
@@ -63,21 +82,7 @@ export async function displayNotification(title: string, body: string): Promise<
     navigator.serviceWorker.register('/notification-test-sw.js', { scope: '/notification-test/' }),
     'O navegador não concluiu a preparação da notificação.',
   )
-  const worker = registration.installing ?? registration.waiting ?? registration.active
-  if (!worker) throw new Error('Não foi possível iniciar a exibição de notificações.')
-  if (worker.state !== 'activated') {
-    await pushTimeout(new Promise<void>((resolve, reject) => {
-      const changed = () => {
-        if (worker.state === 'activated' || worker.state === 'redundant') {
-          worker.removeEventListener('statechange', changed)
-          if (worker.state === 'activated') resolve()
-          else reject(new Error('Falha ao preparar a notificação.'))
-        }
-      }
-      worker.addEventListener('statechange', changed)
-      changed()
-    }), 'O navegador não ativou a exibição da notificação.')
-  }
+  await waitForActiveWorker(registration)
   await pushTimeout(registration.showNotification(title, {
     body, icon: '/icons/icon-192.png', tag: 'salmos-teste', requireInteraction: true, data: { url: '/' },
   }), 'O navegador não concluiu a exibição da notificação.')

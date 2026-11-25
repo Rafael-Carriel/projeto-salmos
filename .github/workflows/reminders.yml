@@ -33,7 +33,7 @@ jobs:
       - run: npm ci
 
       - if: github.event_name == 'workflow_dispatch'
-        run: node --experimental-vm-modules --test scripts/send-reminders.test.mjs
+        run: node --test scripts/send-reminders.test.mjs
 
       - name: Enviar lembretes
         env:

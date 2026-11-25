@@ -2,7 +2,8 @@ import { deleteField, doc, runTransaction, setDoc } from 'firebase/firestore'
 import { getMessaging, getToken, isSupported, onMessage } from 'firebase/messaging'
 import { app, db } from './firebase'
 import { pushTimeout } from './pushTimeout'
-import { displayNotification, requestNotificationPermission } from './notificationDisplay'
+import { displayNotification, requestNotificationPermission, waitForActiveWorker } from './notificationDisplay'
+import type { UserProfile } from './cycle'
 
 const VAPID_KEY = import.meta.env.VITE_FIREBASE_VAPID_KEY as string | undefined
 
@@ -18,7 +19,7 @@ export function pushStatus(): PushStatus {
 }
 
 /** Account-wide settings do not mean this particular browser is registered. */
-export function pushEnabledOnDevice(tokens: Record<string, number> = {}): boolean {
+export function pushEnabledOnDevice(tokens: NonNullable<UserProfile['fcmTokens']> = {}): boolean {
   const token = localStorage.getItem('salmos:fcmToken')
   return pushStatus() === 'granted' && Boolean(token && token in tokens)
 }
@@ -73,19 +74,29 @@ export async function enablePush(uid: string, progress: (message: string) => voi
     `/firebase-messaging-sw.js?${config}`,
     { scope: '/firebase-cloud-messaging-push-scope' },
   ), 'Não foi possível preparar as notificações. Confira a conexão e tente novamente.')
+  await waitForActiveWorker(registration)
   progress('Conectando este aparelho ao serviço de lembretes…')
   const token = await pushTimeout(getToken(getMessaging(app), {
     vapidKey: VAPID_KEY,
     serviceWorkerRegistration: registration,
   }), 'Este navegador não concluiu o cadastro de notificações. Abra o site no Chrome ou Edge e tente novamente.', 25000)
-  if (!token) return 'denied'
+  if (!token || !(await pushTimeout(registration.pushManager.getSubscription(), 'O navegador não confirmou a inscrição deste aparelho.'))) {
+    throw new Error('O navegador não concluiu a inscrição deste aparelho para receber lembretes.')
+  }
+
+  const platform = /Android/i.test(navigator.userAgent) ? 'android'
+    : /iPhone|iPad|iPod/i.test(navigator.userAgent) ? 'ios' : 'other'
+  const previousToken = localStorage.getItem('salmos:fcmToken')
 
   progress('Salvando a ativação dos lembretes…')
   await pushTimeout(setDoc(
     doc(db, 'users', uid),
     {
       notificationsEnabled: true,
-      fcmTokens: { [token]: Date.now() },
+      fcmTokens: {
+        ...(previousToken && previousToken !== token ? { [previousToken]: deleteField() } : {}),
+        [token]: { updatedAt: Date.now(), platform },
+      },
     },
     { merge: true },
   ), 'A ativação ainda não foi confirmada. Confira a conexão e tente novamente.')

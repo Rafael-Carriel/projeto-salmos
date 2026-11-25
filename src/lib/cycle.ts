@@ -28,7 +28,7 @@ export type UserProfile = {
   notificationsEnabled: boolean
   /** Horários locais "HH:MM" em que o usuário quer ser lembrado. */
   notificationTimes: string[]
-  fcmTokens?: Record<string, number>
+  fcmTokens?: Record<string, number | { updatedAt: number; platform: 'android' | 'ios' | 'other' }>
   sentToday?: { date: string; slots: string[] }
   /** IANA, ex. "America/Sao_Paulo" — usado pelo agendador de push. */
   timezone: string

@@ -42,13 +42,13 @@ export function Settings({ state }: { state: ProfileState }) {
   const dirty = times.join() !== (profile.notificationTimes ?? []).join()
   const deviceEnabled = profile.notificationsEnabled && pushEnabledOnDevice(profile.fcmTokens)
 
-  async function toggleNotifications(next: boolean) {
+  async function toggleNotifications(next: boolean, recheck = false) {
     setBusy(true)
     try {
       if (next) {
         const result = await enablePush(user!.uid, setPushMessage)
         setStatus(result)
-        setPushMessage(result === 'granted' ? 'Lembretes ativados neste aparelho. Você já pode testar a notificação.'
+        setPushMessage(result === 'granted' ? (recheck ? 'Cadastro deste aparelho confirmado.' : 'Lembretes ativados neste aparelho.')
           : result === 'denied' ? 'O navegador bloqueou as notificações. Libere a permissão do site para receber lembretes.'
           : result === 'unsupported' ? 'Este navegador não oferece suporte aos lembretes. Abra o site no Chrome ou Edge.'
           : 'A permissão não foi concedida. Clique em Ligar e permita as notificações no navegador.')
@@ -69,6 +69,10 @@ export function Settings({ state }: { state: ProfileState }) {
       <div className="section-head">
         <h1>Ajustes</h1>
       </div>
+
+      {deviceEnabled && <button className="btn btn--ghost" disabled={busy} onClick={() => void toggleNotifications(true, true)}>
+        Verificar cadastro deste aparelho
+      </button>}
       <p className="note" aria-live="polite">
         Permissão de notificações neste navegador: {status === 'granted' ? 'permitida' : status === 'denied' ? 'bloqueada' : status === 'unsupported' ? 'sem suporte' : 'aguardando autorização'}.
       </p>

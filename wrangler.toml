@@ -1,0 +1,12 @@
+name = "projeto-salmos-lembretes"
+main = "reminders/worker.mjs"
+compatibility_date = "2026-11-25"
+workers_dev = false
+preview_urls = false
+
+[triggers]
+crons = ["* * * * *"]
+
+[vars]
+FIREBASE_PROJECT_ID = "projeto-salmos"
+APP_URL = "https://projeto-salmos.web.app"

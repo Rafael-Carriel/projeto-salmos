@@ -141,6 +141,13 @@ Publica no Hosting a cada push na `main`.
 
 O relógio dos lembretes em segundo plano, programado para rodar a cada cinco minutos.
 
+O substituto em `reminders/worker.mjs` usa Cloudflare Workers para verificar os
+horários uma vez por minuto, sem exigir Blaze. Para ativá-lo, conecte a conta
+Cloudflare, configure o segredo `FIREBASE_SERVICE_ACCOUNT` no Worker com uma
+identidade autorizada a ler os perfis e enviar pelo FCM, e publique usando
+`wrangler.toml`. Confirme a execução pelo Cron Trigger antes de desativar o
+workflow de lembretes do GitHub. O GitHub continua publicando o site.
+
 **Por que aqui e não no Firebase:** agendar tarefas no Firebase exige Cloud
 Functions, que exige o plano Blaze (cartão de crédito). *Enviar* pelo FCM é
 gratuito no plano Spark. Então o GitHub Actions faz o papel de relógio e o
